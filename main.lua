@@ -27,20 +27,3 @@ local Window = Rayfield:CreateWindow({
 })
 
 local MainTab = Window:CreateTab("Hoofd", 4483362458) -- Tab met een icoon
-local Tab = Window:CreateTab("Tab Example", 4483362458) -- Title, Image
-MainTab:CreateButton({
-    Name = "Klik mij!",
-    Callback = function()
-        print("Knop is geklikt!")
-        -- Hier kun je je eigen code zetten
-    end,
-})
-
-MainTab:CreateToggle({
-    Name = "Auto Farm",
-    CurrentValue = false,
-    Callback = function(Value)
-        print("Auto Farm aan/uit:", Value)
-        -- Hier kun je je auto-farm code starten/stoppen
-    end,
-})
