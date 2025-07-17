@@ -27,7 +27,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 local MainTab = Window:CreateTab("Hoofd", 4483362458) -- Tab met een icoon
-
+local Tab = Window:CreateTab("Tab Example", 4483362458) -- Title, Image
 MainTab:CreateButton({
     Name = "Klik mij!",
     Callback = function()
