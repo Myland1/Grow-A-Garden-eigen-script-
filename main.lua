@@ -1,29 +1,5 @@
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("TITLE", "DarkTheme")
 
-local Window = Rayfield:CreateWindow({
-    Name = "Mijn Script GUI",
-    LoadingTitle = "Mijn Script Laadt...",
-    LoadingSubtitle = "Door Milan",
-    ConfigurationSaving = {
-       Enabled = true,
-       FolderName = nil, -- of vul een mapnaam in
-       FileName = "MijnScriptConfig"
-    },
-    Discord = {
-       Enabled = false,
-       Invite = "", -- Vul je Discord invite in als je wilt
-       RememberJoins = true
-    },
-    KeySystem = false, -- Zet op true als je een key wilt gebruiken
-    KeySettings = {
-       Title = "Key Systeem",
-       Subtitle = "Key Systeem",
-       Note = "Vraag de key aan de eigenaar",
-       FileName = "Key", -- Sla de key lokaal op
-       SaveKey = true,
-       GrabKeyFromSite = false,
-       Key = "JOUWKEYHIER"
-    }
-})
-
-local MainTab = Window:CreateTab("Hoofd", 4483362458) -- Tab met een icoon
+local Tab = Window:NewTab("TabName")
+local Section = Tab:NewSection("Section Name")
