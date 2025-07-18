@@ -129,30 +129,61 @@ for _, seed in ipairs(seeds) do
     })
 end
 
--- GEAR SHOP TAB (Placeholder - vul zelf in als je gear-buy events kent)
+-- GEAR SHOP TAB
 local Tab = Window:CreateTab("Gear Shop", 4483362458)
 Tab:CreateSection("Autobuy")
+
+local BuyGear = ReplicatedStorage.GameEvents.BuyGearStock -- ⚠️ Controleer of dit de juiste RemoteEvent is
+local gearItems = {
+    "Watering Can", "Trowel", "Recall Wrench", "Basic Sprinkler", "Advanced Sprinkler",
+    "Medium Toy", "Medium Treat", "Godly Sprinkler", "Magnifying Glass", "Tanning Mirror",
+    "Master Sprinkler", "Cleaning Spray", "Favorite Tool", "Harvest Tool",
+    "Friendship Pot", "Levelup Lollipop"
+}
+local buyingGear = {}
+
+-- Select All Toggle
+local allGearActive = false
 Tab:CreateToggle({
-    Name = "Watering Can",
+    Name = "🧰 Select Everything",
     CurrentValue = false,
     Callback = function(state)
-        print("Watering Can: " .. tostring(state))
-    end,
+        allGearActive = state
+        for _, gear in ipairs(gearItems) do
+            buyingGear[gear] = state
+        end
+        if state then
+            for _, gear in ipairs(gearItems) do
+                task.spawn(function()
+                    while buyingGear[gear] do
+                        BuyGear:FireServer(gear, 1)
+                        task.wait(0.25)
+                    end
+                end)
+            end
+        end
+    end
 })
-Tab:CreateToggle({
-    Name = "Trowel",
-    CurrentValue = false,
-    Callback = function(state)
-        print("Trowel: " .. tostring(state))
-    end,
-})
-Tab:CreateToggle({
-    Name = "Recall Wrench",
-    CurrentValue = false,
-    Callback = function(state)
-        print("Recall Wrench: " .. tostring(state))
-    end,
-})
+
+-- Per Gear Toggle
+for _, gear in ipairs(gearItems) do
+    buyingGear[gear] = false
+    Tab:CreateToggle({
+        Name = gear,
+        CurrentValue = false,
+        Callback = function(state)
+            buyingGear[gear] = state
+            if state then
+                task.spawn(function()
+                    while buyingGear[gear] do
+                        BuyGear:FireServer(gear, 1)
+                        task.wait(0.25)
+                    end
+                end)
+            end
+        end,
+    })
+end
 
 -- EGG SHOP TAB (Placeholder - geen egg-buy events bekend nog)
 local Tab = Window:CreateTab("Egg Shop", 4483362458)
