@@ -1,39 +1,32 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = Players.LocalPlayer
 
--- Zorg dat deze variabelen bereikbaar zijn voor Cleanup
-local buying = buying or {}
-local buyingGear = buyingGear or {}
-local buyingEggs = buyingEggs or {}
+-- Flags voor functies
+local buying = {}
+local buyingGear = {}
+local buyingEggs = {}
+local antiAfkEnabled = false
 
+-- Cleanup functie
 local function Cleanup()
-    -- Zet alle koop flags uit, zodat loops stoppen
-    for k in pairs(buying) do
-        buying[k] = false
-    end
-    for k in pairs(buyingGear) do
-        buyingGear[k] = false
-    end
-    for k in pairs(buyingEggs) do
-        buyingEggs[k] = false
-    end
+    for k in pairs(buying) do buying[k] = false end
+    for k in pairs(buyingGear) do buyingGear[k] = false end
+    for k in pairs(buyingEggs) do buyingEggs[k] = false end
 
-    -- Verwijder bestaande GUI als die er is
     local existingGui = CoreGui:FindFirstChild("Rayfield")
-    if existingGui then
-        existingGui:Destroy()
-    end
+    if existingGui then existingGui:Destroy() end
 end
 
--- Roep Cleanup aan voordat je het menu maakt
 Cleanup()
 
--- Daarna kan jouw Rayfield code starten, zoals jij hem al hebt
+-- Laad Rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Mylands Grow a Garden",
-   Icon = 0,
    LoadingTitle = "Rayfield Interface Suite",
    LoadingSubtitle = "by Myland",
    ShowText = "Rayfield",
@@ -41,45 +34,35 @@ local Window = Rayfield:CreateWindow({
    ToggleUIKeybind = "K",
    ConfigurationSaving = {
       Enabled = true,
-      FolderName = nil,
       FileName = "Big Hub"
    },
-   Discord = {
-      Enabled = false,
-      Invite = "noinvitelink",
-      RememberJoins = true
-   },
-   KeySystem = false,
-   KeySettings = {
-      Title = "Untitled",
-      Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided",
-      FileName = "Key",
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"Hello"}
-   }
+   Discord = {Enabled = false},
+   KeySystem = false
 })
 
--- Daarna volgt jouw volledige rest van het script (tabs, toggles, etc.)
-
--- WALK SPEED TAB
+-- === GENERAL TAB ===
 local Tab = Window:CreateTab("General", 4483362458)
-local selectedSpeed = 16
-local plr = game.Players.LocalPlayer
 
+-- Walkspeed
+local selectedSpeed = 16
 local function applySpeed(humanoid)
     if humanoid then
         humanoid.WalkSpeed = selectedSpeed
-        humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-            if humanoid.WalkSpeed ~= selectedSpeed then
-                humanoid.WalkSpeed = selectedSpeed
-            end
-        end)
     end
 end
 
-local Slider = Tab:CreateSlider({
+-- Forceer snelheid elke seconde
+task.spawn(function()
+    while true do
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid and humanoid.WalkSpeed ~= selectedSpeed then
+            applySpeed(humanoid)
+        end
+        task.wait(1)
+    end
+end)
+
+Tab:CreateSlider({
     Name = "Stel je snelheid in",
     Range = {16, 200},
     Increment = 1,
@@ -88,28 +71,41 @@ local Slider = Tab:CreateSlider({
     Flag = "Slider1",
     Callback = function(Value)
         selectedSpeed = Value
-        if plr and plr.Character then
-            local humanoid = plr.Character:FindFirstChild("Humanoid")
-            applySpeed(humanoid)
-        end
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        applySpeed(humanoid)
     end,
 })
 
-plr.CharacterAdded:Connect(function(character)
-    local humanoid = character:WaitForChild("Humanoid")
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local humanoid = char:WaitForChild("Humanoid")
     applySpeed(humanoid)
 end)
 
-if plr.Character then
-    local humanoid = plr.Character:FindFirstChild("Humanoid")
-    applySpeed(humanoid)
-end
+-- Anti-AFK
+Tab:CreateToggle({
+    Name = "🛑 Anti AFK",
+    CurrentValue = false,
+    Callback = function(state)
+        antiAfkEnabled = state
+    end
+})
 
--- SEED SHOP TAB
+-- Anti-AFK loop
+task.spawn(function()
+    while true do
+        if antiAfkEnabled then
+            VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end
+        task.wait(60)
+    end
+end)
+
+-- === SEED SHOP TAB ===
 local Tab = Window:CreateTab("Seed Shop", 4483362458)
 Tab:CreateSection("Autobuy")
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BuySeed = ReplicatedStorage.GameEvents.BuySeedStock
 local seeds = {
     "Carrot", "Strawberry", "Blueberry", "Orange Tulip", "Tomato", "Corn",
@@ -117,15 +113,11 @@ local seeds = {
     "Cactus", "Dragon Fruit", "Mango", "Grape", "Mushroom", "Pepper",
     "Cacao", "Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud", "Giant Pinecone"
 }
-local buying = {}
 
--- Select All Toggle
-local allSeedsActive = false
 Tab:CreateToggle({
     Name = "🧺 Select Everything",
     CurrentValue = false,
     Callback = function(state)
-        allSeedsActive = state
         for _, seed in ipairs(seeds) do
             buying[seed] = state
         end
@@ -142,9 +134,7 @@ Tab:CreateToggle({
     end
 })
 
--- Per Seed Toggle
 for _, seed in ipairs(seeds) do
-    buying[seed] = false
     Tab:CreateToggle({
         Name = seed,
         CurrentValue = false,
@@ -162,26 +152,22 @@ for _, seed in ipairs(seeds) do
     })
 end
 
--- GEAR SHOP TAB
+-- === GEAR SHOP TAB ===
 local Tab = Window:CreateTab("Gear Shop", 4483362458)
 Tab:CreateSection("Autobuy")
 
-local BuyGear = ReplicatedStorage.GameEvents.BuyGearStock -- ⚠️ Controleer of dit de juiste RemoteEvent is
+local BuyGear = ReplicatedStorage.GameEvents.BuyGearStock
 local gearItems = {
     "Watering Can", "Trowel", "Recall Wrench", "Basic Sprinkler", "Advanced Sprinkler",
     "Medium Toy", "Medium Treat", "Godly Sprinkler", "Magnifying Glass", "Tanning Mirror",
     "Master Sprinkler", "Cleaning Spray", "Favorite Tool", "Harvest Tool",
     "Friendship Pot", "Levelup Lollipop"
 }
-local buyingGear = {}
 
--- Select All Toggle
-local allGearActive = false
 Tab:CreateToggle({
     Name = "🧰 Select Everything",
     CurrentValue = false,
     Callback = function(state)
-        allGearActive = state
         for _, gear in ipairs(gearItems) do
             buyingGear[gear] = state
         end
@@ -198,9 +184,7 @@ Tab:CreateToggle({
     end
 })
 
--- Per Gear Toggle
 for _, gear in ipairs(gearItems) do
-    buyingGear[gear] = false
     Tab:CreateToggle({
         Name = gear,
         CurrentValue = false,
@@ -218,24 +202,20 @@ for _, gear in ipairs(gearItems) do
     })
 end
 
--- EGG SHOP TAB
+-- === EGG SHOP TAB ===
 local Tab = Window:CreateTab("Egg Shop", 4483362458)
 Tab:CreateSection("Autobuy")
 
-local BuyEgg = ReplicatedStorage.GameEvents.BuyPetEgg -- ⚠️ Controleer of dit de juiste RemoteEvent is
+local BuyEgg = ReplicatedStorage.GameEvents.BuyPetEgg
 local eggItems = {
     "Common Egg", "Common Summer Egg", "Rare Summer Egg",
     "Mythical Egg", "Paradise Egg", "Bug Egg"
 }
-local buyingEggs = {}
 
--- Select All Toggle
-local allEggsActive = false
 Tab:CreateToggle({
     Name = "🥚 Select Everything",
     CurrentValue = false,
     Callback = function(state)
-        allEggsActive = state
         for _, egg in ipairs(eggItems) do
             buyingEggs[egg] = state
         end
@@ -252,9 +232,7 @@ Tab:CreateToggle({
     end
 })
 
--- Per Egg Toggle
 for _, egg in ipairs(eggItems) do
-    buyingEggs[egg] = false
     Tab:CreateToggle({
         Name = egg,
         CurrentValue = false,
@@ -271,4 +249,3 @@ for _, egg in ipairs(eggItems) do
         end,
     })
 end
-
