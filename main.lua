@@ -1,3 +1,34 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+
+-- Zorg dat deze variabelen bereikbaar zijn voor Cleanup
+local buying = buying or {}
+local buyingGear = buyingGear or {}
+local buyingEggs = buyingEggs or {}
+
+local function Cleanup()
+    -- Zet alle koop flags uit, zodat loops stoppen
+    for k in pairs(buying) do
+        buying[k] = false
+    end
+    for k in pairs(buyingGear) do
+        buyingGear[k] = false
+    end
+    for k in pairs(buyingEggs) do
+        buyingEggs[k] = false
+    end
+
+    -- Verwijder bestaande GUI als die er is
+    local existingGui = CoreGui:FindFirstChild("Rayfield")
+    if existingGui then
+        existingGui:Destroy()
+    end
+end
+
+-- Roep Cleanup aan voordat je het menu maakt
+Cleanup()
+
+-- Daarna kan jouw Rayfield code starten, zoals jij hem al hebt
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -29,6 +60,8 @@ local Window = Rayfield:CreateWindow({
       Key = {"Hello"}
    }
 })
+
+-- Daarna volgt jouw volledige rest van het script (tabs, toggles, etc.)
 
 -- WALK SPEED TAB
 local Tab = Window:CreateTab("General", 4483362458)
@@ -185,27 +218,57 @@ for _, gear in ipairs(gearItems) do
     })
 end
 
--- EGG SHOP TAB (Placeholder - geen egg-buy events bekend nog)
+-- EGG SHOP TAB
 local Tab = Window:CreateTab("Egg Shop", 4483362458)
 Tab:CreateSection("Autobuy")
+
+local BuyEgg = ReplicatedStorage.GameEvents.BuyPetEgg -- ⚠️ Controleer of dit de juiste RemoteEvent is
+local eggItems = {
+    "Common Egg", "Common Summer Egg", "Rare Summer Egg",
+    "Mythical Egg", "Paradise Egg", "Bug Egg"
+}
+local buyingEggs = {}
+
+-- Select All Toggle
+local allEggsActive = false
 Tab:CreateToggle({
-    Name = "Koop Wheat Seed",
+    Name = "🥚 Select Everything",
     CurrentValue = false,
     Callback = function(state)
-        print("Wheat: " .. tostring(state))
-    end,
+        allEggsActive = state
+        for _, egg in ipairs(eggItems) do
+            buyingEggs[egg] = state
+        end
+        if state then
+            for _, egg in ipairs(eggItems) do
+                task.spawn(function()
+                    while buyingEggs[egg] do
+                        BuyEgg:FireServer(egg, 1)
+                        task.wait(0.25)
+                    end
+                end)
+            end
+        end
+    end
 })
-Tab:CreateToggle({
-    Name = "Koop Carrot Seed",
-    CurrentValue = false,
-    Callback = function(state)
-        print("Carrot: " .. tostring(state))
-    end,
-})
-Tab:CreateToggle({
-    Name = "Koop Tomato Seed",
-    CurrentValue = false,
-    Callback = function(state)
-        print("Tomato: " .. tostring(state))
-    end,
-})
+
+-- Per Egg Toggle
+for _, egg in ipairs(eggItems) do
+    buyingEggs[egg] = false
+    Tab:CreateToggle({
+        Name = egg,
+        CurrentValue = false,
+        Callback = function(state)
+            buyingEggs[egg] = state
+            if state then
+                task.spawn(function()
+                    while buyingEggs[egg] do
+                        BuyEgg:FireServer(egg, 1)
+                        task.wait(0.25)
+                    end
+                end)
+            end
+        end,
+    })
+end
+
